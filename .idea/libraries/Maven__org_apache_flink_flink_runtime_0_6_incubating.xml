@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.flink:flink-runtime:0.6-incubating">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/flink/flink-runtime/0.6-incubating/flink-runtime-0.6-incubating.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/flink/flink-runtime/0.6-incubating/flink-runtime-0.6-incubating-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/flink/flink-runtime/0.6-incubating/flink-runtime-0.6-incubating-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
