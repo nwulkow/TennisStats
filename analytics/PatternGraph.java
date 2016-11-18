@@ -80,7 +80,7 @@ public class PatternGraph {
 			}
 		}
 		OutputTools.printMatrix(correlations);
-		OutputTools.writeGraphForGellyAPI(correlations, "correlations");
+		OutputTools.writeGraphForGellyAPI(correlations, "correlations", false);
 
 	}
 

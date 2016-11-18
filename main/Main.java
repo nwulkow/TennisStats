@@ -22,6 +22,7 @@ import analytics.PlayerStats;
 import analytics.ScoreStats;
 import analytics.ServingStats;
 import analytics.StandardStats;
+import analytics.TensorComparison;
 import analytics.Testing;
 import analytics.TransitivityMetrics;
 import analytics.WinProbabilityByTensor;
@@ -70,7 +71,7 @@ public class Main {
 		//Testing.shotDirectionAndOutcomeCorrelations();
 		
 		
-		PredictBySVM pr =  new PredictBySVM(new Player("Andy_Murray"), new Player("Novak_Djokovic"));
+		/*PredictBySVM pr =  new PredictBySVM(new Player("Andy_Murray"), new Player("Novak_Djokovic"));
 		pr.setCategory(4);
 		pr.assembleTrainingData(pr.getP1());
 		//pr.assembleTrainingData(pr.getP2());
@@ -82,8 +83,25 @@ public class Main {
 		System.out.println(pr.predictWinner(pr.getP2(), pr.getP1()));
 		System.out.println(Tools.namesOfMethods(pr.getMethod_list()));
 		OutputTools.printArray(pr.getModel().getFeatureWeights());
-		pr.testTrainingDataSet(pr.getP2());
+		pr.testTrainingDataSet(pr.getP2());*/
 		
+		double difference = TensorComparison.compareTensors(new Player("Roger_Federer"), new Player("Rafael_Nadal"));
+		System.out.println(difference);
+		ArrayList<String> playernames = LoadValues.loadAllPlayernames();
+		//playernames = new ArrayList<String>(playernames.subList(0, 80));
+		playernames = Shottypes.interestingPlayers;
+		double[][] diffMatrix = TensorComparison.createNetworkOfTensorDifferences(playernames);
+		String edgesInputPath = "C:/Users/Niklas/TennisStatsData/diffMatrix_edges.csv";
+		String vertexInputPath = "C:/Users/Niklas/TennisStatsData/diffMatrix_vertices.csv";
+		
+		GellyAPI gellyAPI = new GellyAPI(edgesInputPath, vertexInputPath);
+		
+		gellyAPI.setMaxIterations(2);
+		boolean fileOutput = true;
+		gellyAPI.communityDetection(edgesInputPath, vertexInputPath, playernames, fileOutput);
+		ArrayList<ArrayList<Double>> weights = gellyAPI.findCenterVertices(playernames);
+		//OutputTools.writeGraphInGDF(diffMatrix, playernames,  collectedVertices, "CDGephiFile");
+		OutputTools.writeGraphInGDF(diffMatrix, playernames,  gellyAPI.getCollectedVertices(), "CDGephiFile" , "name VARCHAR,cluster DOUBLE,weightECM DOUBLE,weightBCM DOUBLE", weights );
 		
 		//WinProbabilityByTensor.computeWinProbabilityInRallyByTensor(new Player("Roger_Federer"), new Player("Nicolas_Almagro"));
 		//WinProbabilityByTensor.computePointWinProbabilitiesByTensor(new Player("Roger_Federer"), new Player("Nicolas_Almagro"),0, false);

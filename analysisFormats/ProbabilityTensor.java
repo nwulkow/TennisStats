@@ -1,7 +1,9 @@
 package analysisFormats;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
+import player.Player;
 import tools.StatsTools;
 
 public class ProbabilityTensor {
@@ -35,8 +37,16 @@ public class ProbabilityTensor {
 		}
 	}
 	
+	public ProbabilityTensor(ProbabilityTensor T){
+		this.tensor = T.getTensor();
+		this.firstserves = T.getFirstserves();
+		this.secondserves = T.secondserves;
+		this.returns = T.returns;
+	}
+	
 	public ProbabilityTensor(ArrayList<ProbabilityTensor> tensor_list){
-		for(int l = 0; l < 3; l++){
+		this(averageOverTensors(tensor_list));
+		/*for(int l = 0; l < 3; l++){
 			for(int i = 0; i < 3; i++){
 				for(int j = 0; j < 3; j++){
 					// Summen ueber alle Tensors fuer Rally...
@@ -101,7 +111,11 @@ public class ProbabilityTensor {
 				secondserves[i][j] = new ProbabilityForShot(sumSecondServe, sumSecondServeOutcomes[0], sumSecondServeOutcomes[1], sumSecondServeOutcomes[2], sumSecondServeNextOutcomes[0], sumSecondServeNextOutcomes[1], sumSecondServeNextOutcomes[2]);
 			}
 		}
-		makeStochastic();
+		makeStochastic();*/
+	}
+	
+	public ProbabilityTensor(ArrayList<String> playernames, boolean withDirection) throws NumberFormatException, IOException{
+		this(averageOverTensorsPlayer(playernames, withDirection));
 	}
 	
 	// Matrix stochastisch machen. Auﬂerdem: Outcome Vektor stochastisch machen
@@ -184,6 +198,88 @@ public class ProbabilityTensor {
 		return result;
 	}
 	
+	
+	public static ProbabilityTensor averageOverTensors(ArrayList<ProbabilityTensor> tensor_list){
+		ProbabilityTensor T = new ProbabilityTensor();
+		for(int l = 0; l < 3; l++){
+			for(int i = 0; i < 3; i++){
+				for(int j = 0; j < 3; j++){
+					// Summen ueber alle Tensors fuer Rally...
+					double sum = 0;
+					double[] sumOutcomes = {0d,0,0};
+					double[] sumNextOutcomes = {0d,0,0};
+					
+					// ... ServePlus1
+					double sumSP1 = 0;
+					double[] sumOutcomesSP1 = {0d,0,0};
+					double[] sumNextOutcomesSP1 = {0d,0,0};
+					
+					// ... und Return
+					double sumR = 0;
+					double[] sumOutcomesR = {0d,0,0};
+					double[] sumNextOutcomesR = {0d,0,0};
+					
+					for(int k = 0; k < tensor_list.size(); k++){
+						// Summe ueber alle Tensors fuer die Richtung des jeweiligen Schlages
+						sum += tensor_list.get(k).getTensor().getProbForShotsAtOneIndex(l, i, j).getProbabilityForShot();
+						sumSP1 += tensor_list.get(k).getServeplus1().getProbForShotsAtOneIndex(l, i, j).getProbabilityForShot();
+						sumR += tensor_list.get(k).getReturns().getProbForShotsAtOneIndex(l, i, j).getProbabilityForShot();
+						// Fuer die verschiedenen Outcomes
+						for(int u = 0; u < 3; u++){
+							sumOutcomes[u] += tensor_list.get(k).getTensor().getProbForShotsAtOneIndex(l, i, j).getOutcomeProbabilities()[u];
+							sumNextOutcomes[u] = tensor_list.get(k).getTensor().getProbForShotsAtOneIndex(l, i, j).getOutcomeOfNextShot()[u];
+							sumOutcomesSP1[u] += tensor_list.get(k).getServeplus1().getProbForShotsAtOneIndex(l, i, j).getOutcomeProbabilities()[u];
+							sumNextOutcomesSP1[u] = tensor_list.get(k).getServeplus1().getProbForShotsAtOneIndex(l, i, j).getOutcomeOfNextShot()[u];
+							sumOutcomesR[u] += tensor_list.get(k).getReturns().getProbForShotsAtOneIndex(l, i, j).getOutcomeProbabilities()[u];
+							sumNextOutcomesR[u] = tensor_list.get(k).getReturns().getProbForShotsAtOneIndex(l, i, j).getOutcomeOfNextShot()[u];
+						}
+					}
+					T.tensor.setProbForShotsAtOneIndex(l, i, j, new ProbabilityForShot(sum, sumOutcomes[0], sumOutcomes[1], sumOutcomes[2], sumNextOutcomes[0], sumNextOutcomes[1], sumNextOutcomes[2]));
+					T.serveplus1.setProbForShotsAtOneIndex(l,i,j, new ProbabilityForShot(sumSP1, sumOutcomesSP1[0], sumOutcomesSP1[1], sumOutcomesSP1[2], sumNextOutcomesSP1[0], sumNextOutcomesSP1[1], sumNextOutcomesSP1[2]));
+					T.returns.setProbForShotsAtOneIndex(l,i,j, new ProbabilityForShot(sumR, sumOutcomesR[0], sumOutcomesR[1], sumOutcomesR[2], sumNextOutcomesR[0], sumNextOutcomesR[1], sumNextOutcomesR[2]));
+				}
+			}
+		}
+		
+		for(int i = 0; i < 2; i++){
+			for(int j = 0; j < 3; j++){
+				double sumFirstServe = 0;
+				double sumSecondServe = 0;
+				double[] sumFirstServeOutcomes = new double[3];
+				double[] sumSecondServeOutcomes = new double[3];
+				double[] sumFirstServeNextOutcomes = new double[3];
+				double[] sumSecondServeNextOutcomes = new double[3];
+				for(int z = 0; z < tensor_list.size(); z++){
+					// Summe ueber alle Tensors fuer die Richtung des jeweiligen Aufschlages
+					sumFirstServe += tensor_list.get(z).getFirstserves()[i][j].getProbabilityForShot();
+					sumSecondServe += tensor_list.get(z).getSecondserves()[i][j].getProbabilityForShot();
+					for(int t = 0; t < 3; t++){
+						// Und die Outcomes
+						sumFirstServeOutcomes[t] += tensor_list.get(z).getFirstserves()[i][j].getOutcomeProbabilities()[t];
+						sumSecondServeOutcomes[t] += tensor_list.get(z).getSecondserves()[i][j].getOutcomeProbabilities()[t];
+						sumFirstServeNextOutcomes[t] += tensor_list.get(z).getFirstserves()[i][j].getOutcomeOfNextShot()[t];
+						sumSecondServeNextOutcomes[t] += tensor_list.get(z).getSecondserves()[i][j].getOutcomeOfNextShot()[t];
+					}
+					
+				}
+				T.firstserves[i][j] = new ProbabilityForShot(sumFirstServe, sumFirstServeOutcomes[0], sumFirstServeOutcomes[1], sumFirstServeOutcomes[2], sumFirstServeNextOutcomes[0], sumFirstServeNextOutcomes[1], sumFirstServeNextOutcomes[2]);
+				T.secondserves[i][j] = new ProbabilityForShot(sumSecondServe, sumSecondServeOutcomes[0], sumSecondServeOutcomes[1], sumSecondServeOutcomes[2], sumSecondServeNextOutcomes[0], sumSecondServeNextOutcomes[1], sumSecondServeNextOutcomes[2]);
+			}
+		}
+		T.makeStochastic();
+		return T;
+	}
+	
+	public static ProbabilityTensor averageOverTensorsPlayer(ArrayList<String> playernames, boolean withDirection) throws NumberFormatException, IOException{
+		ArrayList<ProbabilityTensor> tensor_list = new ArrayList<ProbabilityTensor>();
+		for(String playername : playernames){
+			Player player = new Player(playername);
+			player.loadTensor(withDirection);
+			tensor_list.add(player.getTensor());
+		}
+		ProbabilityTensor T = averageOverTensors(tensor_list);
+		return T;
+	}
 
 	public ProbabilityMatrixFromDirection getTensor() {
 		return tensor;

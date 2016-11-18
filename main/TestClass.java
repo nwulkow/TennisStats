@@ -1,34 +1,72 @@
 package main;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.flink.graph.Vertex;
-import org.glassfish.grizzly.http.server.Session;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
+import Jama.Matrix;
+import matlabcontrol.MatlabConnectionException;
+import matlabcontrol.MatlabInvocationException;
+import matlabcontrol.MatlabProxy;
+import matlabcontrol.MatlabProxyFactory;
+import matlabcontrol.MatlabProxyFactoryOptions;
+import matlabcontrol.extensions.MatlabNumericArray;
+import matlabcontrol.extensions.MatlabTypeConverter;
 import tools.OutputTools;
-
 
 public class TestClass {
 
 	
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws IOException, MatlabConnectionException, MatlabInvocationException{
 		
+		
+	    MatlabProxyFactoryOptions options = new MatlabProxyFactoryOptions.Builder()
+	    	    .setUsePreviouslyControlledSession(true)
+	    	    .setHidden(true)
+	    	    .setMatlabLocation(null).build(); 
+	    MatlabProxyFactory factory = new MatlabProxyFactory(options);
+	    MatlabProxy proxy = factory.getProxy();
+	    
+	    MatlabTypeConverter processor = new MatlabTypeConverter(proxy);
+
+	    //proxy.eval("M = [2,1;4,3]");
+	    //double[][] M_array = { {2,1}, {3,4} };
+	    //MatlabNumericArray M = new MatlabNumericArray(M_array, new double[2][2]);//processor.getNumericArray("M");
+	    double[][] M_array = { {2d,1d,3.4}, {3d,4d,1.2}, {2.3 , 4, 5.1} };
+	    double[][] X = { {1,2,10}, {2,5,15}, {3,10,19}, {7,22,28}};
+	    
+	    //MatlabNumericArray M = processor.getNumericArray("M");
+	    //System.out.println(M.getDimensions());
+	    processor.setNumericArray("M_array_M", new MatlabNumericArray(M_array, null));
+	    processor.setNumericArray("X_M", new MatlabNumericArray(X, null));
+	    double[] res = ((double[])(proxy.returningFeval("reconstructTransitionProcess",1,M_array,X))[0]);
+	    System.out.println(res[0]);
+	    //proxy.eval("path");
+	    //proxy.eval("M = M*2");
+	   // proxy.eval("M = convertJava2DToMatlab(M_array)");
+	   // proxy.eval("t = testJavaConnectionMethod(M)");
+	  //  proxy.eval("M = convertJava2DToMatlab(M)");
+	   // proxy.eval("t = testJavaConnectionMethod(M)");
+	   // double t = ((double[]) proxy.getVariable("t"))[0];
+	    //System.out.println(t);
+	    //proxy.feval("convertJava2DToMatlab", new MatlabNumericArray(M_array, null));
+	    //proxy.feval("testJavaConnectionMethod",new MatlabNumericArray(M_array, null));
+	    //proxy.feval("sign", 2);
+	    //Object[] o = proxy.returningFeval("@sin", 2);
+	    //double[][] Mconv = (double[][])(proxy.returningFeval("cellArrayToMatrix",1, M_array));
+	    //proxy.eval("size(M_array)");
+	   // double[] inmem =  (double[])(proxy.returningEval("testJavaConnectionMethod(M_array)", 1)[0]);
+	   // double[] length = (double[])(proxy.returningFeval("size",1,M_array)[0]);
+	   // System.out.println(length[0]);
+
+	   // MatlabNumericArray array = processor.getNumericArray("M_array_M");
+	    //double t = ((double[]) proxy.getVariable("t"))[0];
+	    //double[][] javaArray = array.getRealArray2D();
+	    //OutputTools.printArray(inmem);
+
+
+	    //Disconnect the proxy from MATLAB
+	    proxy.disconnect();
+		
+	    /*
 		FileReader fr = new FileReader(new File("D:/Work/Studium/SHK_2015/PRIBOR3M.txt"));
 		BufferedReader br = new BufferedReader(fr);
 		FileWriter fw = new FileWriter(new File("D:/Work/Studium/SHK_2015/PRIBOR3M_data.txt"));
@@ -44,7 +82,7 @@ public class TestClass {
 		br.close();
 		fw.close();
 		//bw.close();
-		
+		*/
 		//OutputTools.deleteFilesInFolder("C:/Users/Niklas/testfolder1");
 		
 		/*URL url = new URL("https://mybigpoint.tennis.de/web/niklas.wulkow/~/10555/lk-portrait");

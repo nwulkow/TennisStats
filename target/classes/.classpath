@@ -45,5 +45,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry excluding="src/main/java/|src/main/scala/|src/test/java/|src/test/scala/" kind="src" path=""/>
+	<classpathentry kind="lib" path="C:/Users/Niklas/workspace4/matlabcontrol-4.1.0.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

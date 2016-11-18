@@ -51,7 +51,11 @@ public class Shottypes {
 
 	public static ArrayList<String> playersWhereErrorsHappen = new ArrayList<String>(
 			Arrays.asList(/*"Andre_Agassi", "Guillermo_Coria", "Juan_Martin_Del_Potro", "Nicolas_Almagro"*/));
-	
+	public static ArrayList<String> interestingPlayers = new ArrayList<String>(
+			Arrays.asList("Roger_Federer", "Andy_Murray", "Novak_Djokovic", "Rafael_Nadal","Stanislas_Wawrinka", "Juan_Martin_Del_Potro",
+					"Grigor_Dimitrov", "Fabio_Fognini", "Ernests_Gulbis", "John_Isner", "Jack_Sock", "David_Goffin", "Gael_Monfils",
+					"Tomas_Berdych", "David_Ferrer", "Kei_Nishikori", "Milos_Raonic", "Dominic_Thiem", "Marin_Cilic",
+					"Nick_Kyrgios","Lucas_Pouille"));
 	
 	// Results:
 	static double[] sixLove = {6d,0d};

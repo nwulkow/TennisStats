@@ -29,6 +29,7 @@ import simulator.TestingSimulator;
 import tools.MatrixTools;
 import tools.OutputTools;
 
+
 public class TestClass2 {
 
 	public static void main(String[] args) throws Exception {
@@ -44,7 +45,7 @@ public class TestClass2 {
 		
 		long t2 = System.currentTimeMillis();
 		
-		System.out.println("Zeit in Minuten: " + (t2-t1) / (1000*60) );
+		System.out.println("Zeit in Minjgkuten: " + (t2-t1) / (1000*60) );
 		
 		//PlayerStats.createPlayerTransitionProbabilities(true);
 		//Player rf = new Player("Andy_Murray");
@@ -80,8 +81,9 @@ public class TestClass2 {
 		//msl_multi.print();
 		//pslC.printCollection();
 		//psl_multi.print();
-	
-	
+
+		
+		
 	}
 
 

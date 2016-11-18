@@ -195,7 +195,7 @@ public class TestingSimulator {
 			}
 		}
 		System.out.println(playernames);
-		OutputTools.writeGraphForGellyAPI(resultmatrix, "resultmatrix");
+		OutputTools.writeGraphForGellyAPI(resultmatrix, "resultmatrix",true);
 		
 	}
 	

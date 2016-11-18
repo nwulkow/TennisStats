@@ -1,5 +1,6 @@
 package analytics;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.flink.api.common.functions.MapFunction;
@@ -21,19 +22,35 @@ import org.apache.flink.graph.library.PageRankAlgorithm;
 import org.apache.flink.graph.utils.Tuple2ToVertexMap;
 import org.apache.flink.graph.utils.Tuple3ToEdgeMap;
 
+import analysisFormats.ProbabilityTensor;
+import archiveLoad.LoadMatchResults;
+import tools.OutputTools;
 import tools.StatsTools;
 import tools.Tools;
 
 
 public class GellyAPI {
+	
+	Graph<Long, Long, Double> graph;
+	List<Vertex<Long, Long>> collectedVertices;
+	int maxIterations = 10;
+	double CDDDelta = CommunityDetectionData.DELTA;
+
+	public GellyAPI(){
+		
+	}
+	
+	public GellyAPI(String edgesInputPath, String vertexInputPath){
+		loadGraph(edgesInputPath, vertexInputPath);
+	}
 
 	public static void main(String[] args) throws Exception {
 
-		String edgesInputPath = "C:/Users/Niklas/TennisStatsData/resultRatioMatrix_Edges.csv";
-		String vertexInputPath = "C:/Users/Niklas/TennisStatsData/resultRatioMatrix_vertices.csv";
-		boolean fileOutput = false;
-		pageRank(edgesInputPath, vertexInputPath, fileOutput);
-
+		String edgesInputPath = "C:/Users/Niklas/TennisStatsData/test.csv";
+		String vertexInputPath = "C:/Users/Niklas/TennisStatsData/vertices_test.csv";
+		boolean fileOutput = true;
+		//pageRank(edgesInputPath, vertexInputPath, fileOutput);
+		//communityDetection(edgesInputPath, vertexInputPath, new ArrayList<String>(), fileOutput);
 		
 		// Vertex<Long, Long> v = new Vertex<Long, Long>(1L, 2L);
 
@@ -108,13 +125,14 @@ public class GellyAPI {
 	}
 
 	
-	public static void communityDetection(Graph<Long, Long, Double> graph, boolean fileOutput, ExecutionEnvironment env) throws Exception{
+	public List<Vertex<Long, Long>> communityDetection(Graph<Long, Long, Double> graph, ArrayList<String> nodenames, boolean fileOutput, ExecutionEnvironment env) throws Exception{
 		
 		//ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		Integer maxIterations = CommunityDetectionData.MAX_ITERATIONS;
-		Double delta = CommunityDetectionData.DELTA;
-		DataSet<Vertex<Long, Long>> communityVertices = graph.run(new CommunityDetectionAlgorithm(maxIterations, delta))
+		System.out.println("delta = " + CDDDelta + " , maxIterations = " + maxIterations);
+		DataSet<Vertex<Long, Long>> communityVertices = graph.run(new CommunityDetectionAlgorithm(maxIterations, CDDDelta))
 				.getVertices();
+		List<Vertex<Long, Long>> collectedVertices = communityVertices.collect();
+		this.collectedVertices = collectedVertices;
 		if (fileOutput) {
 			communityVertices.writeAsCsv("C:/Users/Niklas/TennisStatsData/test_gellyapi_output", "\n", ",");
 			// since file sinks are lazy, we trigger the execution explicitly
@@ -123,19 +141,85 @@ public class GellyAPI {
 		else {
 			communityVertices.print();
 		}
+		return collectedVertices;
 	}
 	
-	public static void communityDetection(String edgesInputPath, String vertexInputPath, boolean fileOutput) throws Exception{
+	public List<Vertex<Long, Long>> communityDetection(String edgesInputPath, String vertexInputPath, ArrayList<String> nodenames, boolean fileOutput) throws Exception{
 		
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		
 		DataSet<Edge<Long, Double>> edges = getEdgesDataSet(env, edgesInputPath);
 		DataSet<Vertex<Long, Long>> vertices = getVerticesDataSet(env, vertexInputPath);
 		Graph<Long, Long, Double> graph = Graph.fromDataSet(vertices, edges, env);
-		communityDetection(graph, fileOutput, env);
+		this.graph = graph;
+		return communityDetection(this.graph, nodenames, fileOutput, env);
 	}
 	
-	public static List<Vertex<Long,Double>> pageRank(Graph<Long, Double, Double> graph, boolean fileOutput, ExecutionEnvironment env) throws Exception{
+	
+	public ArrayList<ArrayList<Double>> findCenterVertices(ArrayList<String> playernames) throws Exception{
+		
+		double noVertices = collectedVertices.size();
+		ArrayList<Integer> clusterIDs = new ArrayList<Integer>();
+		ArrayList<Double> clusterNumberOfVertices = new ArrayList<Double>();
+		
+		ArrayList<Double> weightsExceptClusterMates = new ArrayList<Double>(); // Liste, die fuer jeden Knoten die Summe der Kantengewichte enthaelt, die zu Knoten aus anderen Clustern fuehren
+		ArrayList<Double> weightsBetweenClusterMates = new ArrayList<Double>(); // Gleiche Liste wie oben, nur dass die Knoten hernagezogen werden, die im gleichen Cluster liegen
+		ArrayList<Integer> vertexNumbers = new ArrayList<Integer>();
+		ArrayList<ArrayList<String>> playersInClusters = new ArrayList<ArrayList<String>>();
+		// Zaehlen, wie viele Knoten zu jedem einzelnen Cluster gehoeren:
+		for(int j = 0; j < noVertices; j++){
+			vertexNumbers.add(collectedVertices.get(j).getId().intValue());
+			weightsExceptClusterMates.add(0d);
+			weightsBetweenClusterMates.add(0d);
+			int clusterIndex = clusterIDs.indexOf(collectedVertices.get(j).getValue().intValue());
+			if(clusterIndex >= 0){
+				clusterNumberOfVertices.set(clusterIndex, clusterNumberOfVertices.get(clusterIndex) + 1);
+			}
+			else{
+				clusterIDs.add(collectedVertices.get(j).getValue().intValue());
+				clusterNumberOfVertices.add(1d);
+				playersInClusters.add(new ArrayList<String>());
+			}
+		}
+		
+		List<Edge<Long,Double>> edges = graph.getEdges().collect();
+		// Alle Edges durchgehen und Gewichtung notieren
+		for(Edge<Long,Double> edge : edges){
+			int v1Index = edge.f0.intValue(); // Knoten-Nummer im Graph
+			int v2Index = edge.f1.intValue();
+			Vertex<Long,Long> v1 = collectedVertices.get(vertexNumbers.indexOf(v1Index)); // Knoten, die zum Edge gehoeren
+			Vertex<Long,Long> v2 = collectedVertices.get(vertexNumbers.indexOf(v2Index));
+			double edgeWeight = edge.f2;
+			if(!v1.getValue().equals(v2.getValue())){ // Value ist die Cluster-Nummer. Wenn zwei Vertices in verschiedenen Clustern sind, dann Gewicht des Edges zwischen beiden auf die persoenlichen Counter addieren
+				weightsExceptClusterMates.set(v1Index, weightsExceptClusterMates.get(v1Index) + edgeWeight);
+				weightsExceptClusterMates.set(v2Index, weightsExceptClusterMates.get(v2Index) + edgeWeight);
+			}
+			else{
+				weightsBetweenClusterMates.set(v1Index, weightsBetweenClusterMates.get(v1Index) + edgeWeight);
+				weightsBetweenClusterMates.set(v2Index, weightsBetweenClusterMates.get(v2Index) + edgeWeight);
+			}
+		}
+		// Output und dividieren der weightECM-Werte durch die Anzahl der Knoten auﬂerhalb des Clusters
+		for(int i = 0; i < noVertices; i++){
+			int index = collectedVertices.get(i).getId().intValue();
+			int clusterID = collectedVertices.get(i).getValue().intValue();
+			int clusterIndex = clusterIDs.indexOf(clusterID);
+			playersInClusters.get(clusterIndex).add(playernames.get(index));
+			weightsExceptClusterMates.set(index, weightsExceptClusterMates.get(index) / (noVertices - clusterNumberOfVertices.get(clusterIndex)));
+			weightsBetweenClusterMates.set(index, weightsBetweenClusterMates.get(index) / (clusterNumberOfVertices.get(clusterIndex)));
+			
+			System.out.println("Name: " + playernames.get(index) + " , ID: " + index + " , Cluster: " + collectedVertices.get(i).getValue() 
+					+ " , weightsExceptClusterMates: " + weightsExceptClusterMates.get(index) + " , weightsBetweenClusterMates: " + weightsBetweenClusterMates.get(index));
+		}
+		System.out.println(clusterIDs);
+		ArrayList<ArrayList<Double>> cummulatedEdgeWeights = new ArrayList<ArrayList<Double>>();
+		cummulatedEdgeWeights.add(weightsExceptClusterMates);
+		cummulatedEdgeWeights.add(weightsBetweenClusterMates);
+		LoadMatchResults.allClustersAgainstEachOther(playersInClusters);
+		return cummulatedEdgeWeights;
+	}
+	
+	public List<Vertex<Long,Double>> pageRank(Graph<Long, Double, Double> graph, boolean fileOutput, ExecutionEnvironment env) throws Exception{
 		
 		//ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
@@ -173,7 +257,7 @@ public class GellyAPI {
 		return collectedVertices;
 	}
 	
-	public static List<Vertex<Long,Double>> pageRank(String edgesInputPath, String vertexInputPath, boolean fileOutput) throws Exception{
+	public List<Vertex<Long,Double>> pageRank(String edgesInputPath, String vertexInputPath, boolean fileOutput) throws Exception{
 		
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
@@ -199,16 +283,54 @@ public class GellyAPI {
 		}
 	}
 
-	private static DataSet<Edge<Long, Double>> getEdgesDataSet(ExecutionEnvironment env, String edgesInputPath) {
+	private DataSet<Edge<Long, Double>> getEdgesDataSet(ExecutionEnvironment env, String edgesInputPath) {
 		return env.readCsvFile(edgesInputPath).ignoreComments("#").fieldDelimiter(",").lineDelimiter("\n")
 				.types(Long.class, Long.class, Double.class).map(new Tuple3ToEdgeMap<Long, Double>());
-
 	}
 
-	private static DataSet<Vertex<Long, Long>> getVerticesDataSet(ExecutionEnvironment env, String vertexInputPath) {
+	private DataSet<Vertex<Long, Long>> getVerticesDataSet(ExecutionEnvironment env, String vertexInputPath) {
 		return env.readCsvFile(vertexInputPath).ignoreComments("#").fieldDelimiter(",").lineDelimiter("\n")
 				.types(Long.class, Long.class).map(new Tuple2ToVertexMap<Long, Long>());
+	}
+	
+	private void loadGraph(String edgesInputPath, String vertexInputPath){
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		DataSet<Edge<Long, Double>> edges = getEdgesDataSet(env, edgesInputPath);
+		DataSet<Vertex<Long, Long>> vertices = getVerticesDataSet(env, vertexInputPath);
+		Graph<Long, Long, Double> graph = Graph.fromDataSet(vertices, edges, env);
+		this.graph = graph;
+	}
 
+	public Graph<Long, Long, Double> getGraph() {
+		return graph;
+	}
+
+	public void setGraph(Graph<Long, Long, Double> graph) {
+		this.graph = graph;
+	}
+
+	public List<Vertex<Long, Long>> getCollectedVertices() {
+		return collectedVertices;
+	}
+
+	public void setCollectedVertices(List<Vertex<Long, Long>> collectedVertices) {
+		this.collectedVertices = collectedVertices;
+	}
+
+	public int getMaxIterations() {
+		return maxIterations;
+	}
+
+	public void setMaxIterations(int maxIterations) {
+		this.maxIterations = maxIterations;
+	}
+
+	public double getCDDDelta() {
+		return CDDDelta;
+	}
+
+	public void setCDDDelta(double cDDDelta) {
+		CDDDelta = cDDDelta;
 	}
 
 }

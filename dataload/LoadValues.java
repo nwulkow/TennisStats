@@ -141,6 +141,7 @@ public class LoadValues {
 		return result;
 	}
 	
+	// Method um die Daten fuer den PlayerSelector im Simulator-Teil der GUI zu laden
 	public static Object[][] loadPlayerDataForPlayerSelector() throws IOException{
 		
 		ArrayList<String> playernames = new ArrayList<String>();

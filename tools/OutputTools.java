@@ -81,15 +81,18 @@ public class OutputTools {
 		}
 	}
 
-	public static void writeGraphForGellyAPI(double[][] M, String filepath) throws IOException {
-		File f_edges = new File("C:/Users/Niklas/TennisStatsData/" + filepath + "_edges" + ".csv");
+	public static void writeGraphForGellyAPI(double[][] M, String filename, boolean directed) throws IOException {
+		File f_edges = new File("C:/Users/Niklas/TennisStatsData/" + filename + "_edges" + ".csv");
 		FileWriter fw_edges = new FileWriter(f_edges);
-		File f_vertices = new File("C:/Users/Niklas/TennisStatsData/" + filepath + "_vertices" + ".csv");
+		File f_vertices = new File("C:/Users/Niklas/TennisStatsData/" + filename + "_vertices" + ".csv");
 		FileWriter fw_vertices = new FileWriter(f_vertices);
-	
 		for (int i = 0; i < M.length; i++) {
 			fw_vertices.write(i + "," + (i*100) + "\n");
-			for (int j = 0; j < M.length; j++) {
+			int startIndex = i+1;
+			if(directed){
+				startIndex = 0;
+			}
+			for (int j = startIndex; j < M.length; j++) {
 				if(M[i][j] != 0){
 					fw_edges.write(i + "," + j + "," + Math.abs(M[i][j]));
 					fw_edges.write("\n");
@@ -100,7 +103,7 @@ public class OutputTools {
 		fw_vertices.close();
 	}
 
-	public static void writeGraphInGDF(double[][] M, List<Vertex<Long,Double>> vertices, String filepath) throws IOException {
+	public static void writeGraphInGDF(double[][] M, List<Vertex<Long,Long>> vertices, String filepath) throws IOException {
 		
 		File f = new File("C:/Users/Niklas/TennisStatsData/" + filepath + ".gdf");
 		FileWriter fw = new FileWriter(f);
@@ -120,7 +123,60 @@ public class OutputTools {
 		}
 		fw.close();
 	}
-
+	
+	public static void writeGraphInGDF(double[][] M, ArrayList<String> playernames, List<Vertex<Long,Long>> vertices, String filepath, String nodeHeader, ArrayList<ArrayList<Double>> values) throws IOException {
+		
+		File f = new File("C:/Users/Niklas/TennisStatsData/" + filepath + ".gdf");
+		FileWriter fw = new FileWriter(f);
+		fw.write("nodedef>" + nodeHeader + "\n");
+	
+		for (int i = 0; i < M.length; i++) {
+			fw.write(playernames.get(i) + "," + vertices.get(i).getValue());
+			if(values.size() > 0){
+				fw.write(",");
+			}
+			for(int g = 0; g < values.size(); g++){
+				ArrayList<Double> list = values.get(g);
+				fw.write(list.get(i)+ "");
+				if(g < values.size() - 1){
+					fw.write(",");
+				}
+			}
+			fw.write("\n");
+		}
+		fw.write("edgedef>node1 VARCHAR,node2 VARCHAR,weight DOUBLE \n");
+		for(int k = 0; k < M.length; k++){
+			for (int j = k+1; j < M[0].length; j++) {
+				if(M[k][j] != 0){
+					fw.write(playernames.get(k) + "," + playernames.get(j) + "," + Math.abs(M[k][j]));
+					fw.write("\n");
+				}
+			}
+		}
+		fw.close();
+	}
+	
+	public static void writeGraphInGDF(double[][] M, ArrayList<String> playernames, List<Vertex<Long,Long>> vertices, String filepath) throws IOException {
+		
+		File f = new File("C:/Users/Niklas/TennisStatsData/" + filepath + ".gdf");
+		FileWriter fw = new FileWriter(f);
+		fw.write("nodedef>name VARCHAR,rank DOUBLE\n");
+	
+		for (int i = 0; i < M.length; i++) {
+			fw.write(playernames.get(i) + "," + vertices.get(i).getValue() + "\n");
+		}
+		fw.write("edgedef>node1 VARCHAR,node2 VARCHAR,weight DOUBLE \n");
+		for(int k = 0; k < M.length; k++){
+			for (int j = 0; j < M[0].length; j++) {
+				if(M[k][j] != 0){
+					fw.write(playernames.get(k) + "," + playernames.get(j) + "," + Math.abs(M[k][j]));
+					fw.write("\n");
+				}
+			}
+		}
+		fw.close();
+	}
+	
 	public static void writeGraphInGDF(double[][] M, String filepath) throws IOException {
 		
 		File f = new File("C:/Users/Niklas/TennisStatsData/" + filepath + ".gdf");

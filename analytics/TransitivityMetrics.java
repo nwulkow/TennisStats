@@ -134,11 +134,12 @@ public class TransitivityMetrics {
 	public static double pageRankSTD(double[][] M) throws Exception{
 		//double[][] resultRatioMatrix = LoadAllTAMatches.printWinnersMatrix("C:/Users/Niklas/TennisStatsData/SackmannRawData/", false);
 		//System.out.println(TransitivityMetrics.transitivityMetric(resultRatioMatrix));
-		OutputTools.writeGraphForGellyAPI(M,"resultRatioMatrix");
+		OutputTools.writeGraphForGellyAPI(M,"resultRatioMatrix", false);
 		String edgesInputPath = "C:/Users/Niklas/TennisStatsData/resultRatioMatrix_Edges.csv";
 		String vertexInputPath = "C:/Users/Niklas/TennisStatsData/resultRatioMatrix_vertices.csv";
 		boolean fileOutput = false;
-		List<Vertex<Long,Double>> collectedVertices = GellyAPI.pageRank(edgesInputPath, vertexInputPath, fileOutput);
+		GellyAPI gellyAPI = new GellyAPI(edgesInputPath, vertexInputPath);
+		List<Vertex<Long,Double>> collectedVertices = gellyAPI.pageRank(edgesInputPath, vertexInputPath, fileOutput);
 		double[] ranks = new double[(int) collectedVertices.size()];
 		for(int i = 0; i < collectedVertices.size(); i++){
 			ranks[i] = collectedVertices.get(i).getValue();

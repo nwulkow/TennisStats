@@ -154,11 +154,6 @@
         	<version>1.0.9</version>
         </dependency>
         <dependency>
-        	<groupId>org.apache.poi</groupId>
-        	<artifactId>poi</artifactId>
-        	<version>3.14</version>
-        </dependency>
-        <dependency>
         	<groupId>gov.nist.math</groupId>
         	<artifactId>jama</artifactId>
         	<version>1.0.3</version>
@@ -182,6 +177,11 @@
         	<groupId>org.apache.commons</groupId>
         	<artifactId>commons-math3</artifactId>
         	<version>3.2</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.poi</groupId>
+        	<artifactId>poi</artifactId>
+        	<version>3.8</version>
         </dependency>
     </dependencies>
 
